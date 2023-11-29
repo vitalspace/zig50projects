@@ -17,7 +17,7 @@ fn createFile(filename: []const u8, content: []const u8) !void {
 
 fn readFile(allocator: std.mem.Allocator, filename: []const u8) !void {
     const file = std.fs.cwd().readFileAlloc(allocator, filename, std.math.maxInt(usize)) catch |err| {
-        std.debug.print("No de pudo abrir el archivo Err: {}\n", .{err});
+        std.debug.print("\nCould not open the file Err: {}\n", .{err});
         return;
     };
 
@@ -27,8 +27,10 @@ fn readFile(allocator: std.mem.Allocator, filename: []const u8) !void {
 
 fn deleteFile(filename: []const u8) !bool {
     std.fs.cwd().deleteFile(filename) catch |err| {
-        std.debug.print("No de pudo eleminar el archivo Err: {}\n", .{err});
-        return false;
+        if (err == error.FileNotFound) {
+            // std.debug.print("Could not delete file Err: {}\n", .{err});
+            return false;
+        }
     };
 
     return true;
