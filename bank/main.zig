@@ -25,8 +25,8 @@ const Bank = struct {
         _ = self;
 
         if (id < accounts.items.len) {
-            const removedTask = accounts.orderedRemove(id);
-            defer allocator.free(removedTask.name);
+            const removedAccount = accounts.orderedRemove(id);
+            defer allocator.free(removedAccount.name);
 
             accountCount -= 1;
 
