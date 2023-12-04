@@ -8,7 +8,7 @@ pub fn main() !void {
     var password: [12]u8 = undefined;
 
     for (&password) |*char| {
-        var index = prng.random().int(u64) % caracteres.len;
+        var index = prng.random().int(u8) % caracteres.len;
         char.* = caracteres[index];
     }
 
