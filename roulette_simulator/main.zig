@@ -27,9 +27,12 @@ pub fn main() !void {
     const str = try getPrompt(allocator);
     defer allocator.free(str);
     const election = try std.fmt.parseInt(u32, str, 0);
+    var randomNumber = try getRandomNumberBetween(0, 37);
 
     if (election < 37) {
-        var randomNumber = try getRandomNumberBetween(0, 37);
+        std.debug.print("The Roulette spins\n", .{});
+        std.debug.print("The Result is: {d}\n", .{randomNumber});
+
         if (election == randomNumber) {
             std.debug.print("\nCongratulations! You've won.\n", .{});
         } else {
