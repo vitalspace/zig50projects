@@ -7,9 +7,11 @@ fn calculateMean(numbers: *std.ArrayList(f32)) !f32 {
         return 0.0;
     }
 
-    for (numbers.items) |value| {
-        sum += value;
+    for (numbers.items) |item| {
+        sum += item;
     }
+
+    defer numbers.deinit();
 
     return sum / @as(f32, @floatFromInt(numbers.items.len));
 }
@@ -25,24 +27,70 @@ fn getPrompt(allocator: std.mem.Allocator) ![]const u8 {
     return str_copy;
 }
 
+fn menu() void {
+    std.debug.print("\n--- Menu ---\n", .{});
+    std.debug.print("1 - Menu\n", .{});
+    std.debug.print("2 - Calculate Mean\n", .{});
+    std.debug.print("3 - Calculate Median\n", .{});
+    std.debug.print("4 - Calculate Mode\n", .{});
+    std.debug.print("5 - Exit\n", .{});
+}
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    std.debug.print("\n--- Caculate The Mean ---\n", .{});
-    std.debug.print("Ingrese la canitidad de numers:  ", .{});
-    const n_str = try getPrompt(allocator);
-    const n = try std.fmt.parseInt(u32, n_str, 0);
-    defer allocator.free(n_str);
-
     var numbers = std.ArrayList(f32).init(allocator);
 
-    var i: u32 = 0;
+    menu();
 
-    while (i < n) : (i += 1) {
-        const str = try getPrompt(allocator);
-        const number = try std.fmt.parseFloat(f32, str);
-        try numbers.append(number);
+    while (true) {
+        std.debug.print("\n", .{});
+        std.debug.print("", .{});
+
+        const output = try getPrompt(allocator);
+        defer allocator.free(output);
+        const option = try std.fmt.parseInt(u32, output, 0);
+
+        switch (option) {
+            1 => {
+                menu();
+            },
+            2 => {
+                std.debug.print("\n--- Caculate the Mean ---\n", .{});
+                std.debug.print("Enter the amount of numbers: ", .{});
+                const n_str = try getPrompt(allocator);
+                defer allocator.free(n_str);
+                const n = try std.fmt.parseInt(u32, n_str, 0);
+                var i: u32 = 0;
+                while (i < n) : (i += 1) {
+                    std.debug.print("Type number: ", .{});
+                    const str = try getPrompt(allocator);
+                    const number = try std.fmt.parseFloat(f32, str);
+                    try numbers.append(number);
+                }
+                const mean = try calculateMean(&numbers);
+                std.debug.print("\nThe Mean: {d:.}\n", .{mean});
+            },
+            3 => {
+                std.debug.print("\n--- Calculate the Media ---\n", .{});
+                std.debug.print("Enter the amount of numbers: ", .{});
+                const n_str = try getPrompt(allocator);
+                defer allocator.free(n_str);
+                const n = try std.fmt.parseInt(u32, n_str, 0);
+                var i: u32 = 0;
+                while (i < n) : (i += 1) {
+                    std.debug.print("Type number: ", .{});
+                    const str = try getPrompt(allocator);
+                    const number = try std.fmt.parseFloat(f32, str);
+                    try numbers.append(number);
+                }
+            },
+            4 => {},
+            5 => {
+                std.debug.print("See you!!\n", .{});
+                return;
+            },
+            else => {
+                std.debug.print("Please type a valid option.\n", .{});
+            },
+        }
     }
-
-    const mean = try calculateMean(&numbers);
-    std.debug.print("La media es: {d:.}", .{mean});
 }
