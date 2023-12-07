@@ -1,5 +1,17 @@
 const std = @import("std");
 
+fn median(arr: *std.ArrayList(i32)) f32 {
+    const len = arr.items.len;
+
+    defer arr.deinit();
+
+    if (len % 2 == 0) {
+        return @as(f32, @floatFromInt(arr.items[len / 2 - 1] + arr.items[len / 2])) / 2.0;
+    } else {
+        return @as(f32, @floatFromInt(arr.items[len / 2]));
+    }
+}
+
 fn calculateMean(numbers: *std.ArrayList(f32)) !f32 {
     var sum: f32 = 0.0;
 
@@ -38,6 +50,7 @@ fn menu() void {
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
     var numbers = std.ArrayList(f32).init(allocator);
+    var numbers_median = std.ArrayList(i32).init(allocator);
 
     menu();
 
@@ -68,20 +81,26 @@ pub fn main() !void {
                 }
                 const mean = try calculateMean(&numbers);
                 std.debug.print("\nThe Mean: {d:.}\n", .{mean});
+                std.debug.print("\n(1) to back to the menu.\n", .{});
             },
             3 => {
                 std.debug.print("\n--- Calculate the Media ---\n", .{});
                 std.debug.print("Enter the amount of numbers: ", .{});
                 const n_str = try getPrompt(allocator);
-                defer allocator.free(n_str);
                 const n = try std.fmt.parseInt(u32, n_str, 0);
+
                 var i: u32 = 0;
                 while (i < n) : (i += 1) {
                     std.debug.print("Type number: ", .{});
                     const str = try getPrompt(allocator);
-                    const number = try std.fmt.parseFloat(f32, str);
-                    try numbers.append(number);
+                    const number = try std.fmt.parseInt(i32, str, 0);
+                    try numbers_median.append(number);
                 }
+
+                std.sort.insertion(i32, numbers_median.items, {}, std.sort.asc(i32));
+                const med = median(&numbers_median);
+                std.debug.print("\nThe Media: {d}\n", .{med});
+                std.debug.print("\n(1) to back to the menu.\n", .{});
             },
             4 => {},
             5 => {
