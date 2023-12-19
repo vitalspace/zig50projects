@@ -20,15 +20,31 @@ fn binarySearchById(items: []Object, target: i32) ?usize {
     return null;
 }
 
+const compareObjectsById = struct {
+    fn foo(context: void, a: Object, b: Object) bool {
+        _ = context;
+        return a.id < b.id;
+    }
+}.foo;
+
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
     var items = [_]Object{
         Object{ .id = 1, .name = "lucas" },
         Object{ .id = 2, .name = "sam" },
-        Object{ .id = 3, .name = "lucia" },
+        Object{ .id = 4, .name = "lucia" },
+        Object{ .id = 7, .name = "pato" },
+        Object{ .id = 5, .name = "samuel" },
+        Object{ .id = 6, .name = "maria" },
     };
 
     const target: i32 = 2;
+    std.mem.sort(Object, &items, {}, compareObjectsById);
+
+    for (items) |item| {
+        std.debug.print("{}\n", .{item});
+    }
+
     const result = binarySearchById(items[0..], target);
 
     if (result == null) {
