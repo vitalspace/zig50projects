@@ -69,37 +69,30 @@ const Semver = struct {
         var itV1 = std.mem.split(u8, version1, ".");
         var itV2 = std.mem.split(u8, version2, ".");
 
-        var sumV1: u32 = 0;
-        var sumV2: u32 = 0;
+        while (true) {
+            const part1 = itV1.next();
+            const part2 = itV2.next();
 
-        var i: u8 = 0;
-        while (i < 2) : (i += 1) {
-            const part1 = itV1.next() orelse break;
-            const part2 = itV2.next() orelse break;
+            if (part1 == null and part2 == null) {
+                return false;
+            }
 
-            const v1 = try std.fmt.parseInt(u32, part1, 10);
-            const v2 = try std.fmt.parseInt(u32, part2, 10);
+            var v1: u32 = 0;
+            var v2: u32 = 0;
 
-            sumV1 += v1;
-            sumV2 += v2;
+            if (part1 != null) {
+                v1 = try std.fmt.parseInt(u32, part1.?, 10);
+            }
+            if (part2 != null) {
+                v2 = try std.fmt.parseInt(u32, part2.?, 10);
+            }
+
+            if (v1 > v2) {
+                return true;
+            } else if (v1 < v2) {
+                return false;
+            }
         }
-
-        if (sumV1 > sumV2) {
-            return true;
-        } else {
-            return false;
-        }
-
-        // std.debug.print("{}\n", .{sumV1});
-        // std.debug.print("{}\n", .{sumV2});
-
-        // if (sumV1 > sumV2) {
-        //     std.debug.print("Sum of first two numbers in {} is greater than in {}\n", .{ version1, version2 });
-        // } else if (sumV1 < sumV2) {
-        //     std.debug.print("Sum of first two numbers in {} is less than in {}\n", .{ version1, version2 });
-        // } else {
-        //     std.debug.print("Sum of first two numbers in {} is equal to in {}\n", .{ version1, version2 });
-        // }
     }
 };
 
@@ -118,6 +111,6 @@ pub fn main() !void {
 
     const semver = Semver{};
 
-    const gt = try semver.gt("1.200.1", "0.1000.3");
+    const gt = try semver.gt("0.200.2", "0.201.1");
     std.debug.print("{}\n", .{gt});
 }
