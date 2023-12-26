@@ -97,19 +97,17 @@ const Semver = struct {
 };
 
 pub fn main() !void {
-    // const allocator = std.heap.page_allocator;
-
-    // const semver = Semver{};
-    // const valid = try semver.isValidVersion("10.11.1");
-
-    // std.debug.print("{s}\n", .{valid});
-
-    // const clean = try semver.clean(allocator, " v=1.2.3??  ?  ");
-    // defer allocator.free(clean);
-
-    // std.debug.print("{s}\n", .{clean});
+    const allocator = std.heap.page_allocator;
 
     const semver = Semver{};
+    const valid = try semver.isValidVersion("10.11.1");
+
+    std.debug.print("{s}\n", .{valid});
+
+    const clean = try semver.clean(allocator, " v=1.2.3??  ?  ");
+    defer allocator.free(clean);
+
+    std.debug.print("{s}\n", .{clean});
 
     const gt = try semver.gt("0.200.2", "0.201.1");
     std.debug.print("{}\n", .{gt});
