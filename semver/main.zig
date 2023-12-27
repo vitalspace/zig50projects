@@ -4,30 +4,67 @@ const Semver = struct {
     pub fn isValidVersion(this: @This(), version: []const u8) ![]const u8 {
         _ = this;
 
-        var prevCharWasDot: bool = false;
         var dots: i32 = 0;
+        var prevCharWasDot: bool = false;
+        var isPreRelease: bool = false;
+        var segmentLength: i32 = 0;
+        var buildMetadataStart: ?usize = null;
+        var segmentStartsWithZero: bool = false;
 
-        for (version) |value| {
-            if (@as(i32, '.') == value) {
-                if (prevCharWasDot) {
-                    return error.ConsecutiveDots;
-                }
-
-                dots += 1;
-
-                prevCharWasDot = true;
-            } else if (value < @as(i32, '0') or value > @as(i32, '9')) {
-                return error.InvalidCharacter;
-            } else {
-                prevCharWasDot = false;
+        for (version, 0..) |value, index| {
+            switch (value) {
+                @as(i32, '.') => {
+                    if (prevCharWasDot or (!isPreRelease and dots >= 2) or segmentLength > 15 or (segmentStartsWithZero and segmentLength > 1)) {
+                        return error.InvalidVersionFormat;
+                    }
+                    if (!isPreRelease) {
+                        dots += 1;
+                    }
+                    prevCharWasDot = true;
+                    segmentLength = 0;
+                    segmentStartsWithZero = false;
+                },
+                @as(i32, '-') => {
+                    if (dots != 2 or isPreRelease or segmentLength > 15 or (segmentStartsWithZero and segmentLength > 1)) {
+                        return error.InvalidVersionFormat;
+                    }
+                    isPreRelease = true;
+                    prevCharWasDot = false;
+                    segmentLength = 0;
+                    segmentStartsWithZero = false;
+                },
+                @as(i32, '+') => {
+                    buildMetadataStart = index;
+                },
+                @as(i32, '0')...@as(i32, '9') => {
+                    if (value == @as(i32, '0') and segmentLength == 0) {
+                        segmentStartsWithZero = true;
+                    }
+                    prevCharWasDot = false;
+                    segmentLength += 1;
+                },
+                @as(i32, 'a')...@as(i32, 'z') => {
+                    if (!isPreRelease) {
+                        return error.InvalidVersionFormat;
+                    }
+                    prevCharWasDot = false;
+                    segmentLength += 1;
+                },
+                else => {
+                    return error.InvalidCharacter;
+                },
             }
         }
 
-        if (dots != 2) {
+        if (dots != 2 or prevCharWasDot or segmentLength > 15 or (segmentStartsWithZero and segmentLength > 1)) {
             return error.InvalidVersionFormat;
         }
 
-        return version;
+        if (buildMetadataStart) |index| {
+            return version[0..index];
+        } else {
+            return version;
+        }
     }
 
     pub fn clean(this: @This(), allocator: std.mem.Allocator, version: []const u8) ![]const u8 {
@@ -43,7 +80,7 @@ const Semver = struct {
         for (str) |value| {
             if (value == @as(u8, '.')) {
                 if (prevCharWasDot) {
-                    return error.ConsecutiveDots;
+                    return error.InvalidVersionFormat;
                 }
                 prevCharWasDot = true;
                 dotCount += 1;
@@ -73,18 +110,32 @@ const Semver = struct {
             const part1 = itV1.next();
             const part2 = itV2.next();
 
-            if (part1 == null and part2 == null) {
-                return false;
-            }
-
             var v1: u32 = 0;
             var v2: u32 = 0;
 
-            if (part1 != null) {
-                v1 = try std.fmt.parseInt(u32, part1.?, 10);
-            }
-            if (part2 != null) {
-                v2 = try std.fmt.parseInt(u32, part2.?, 10);
+            if (part1 != null and part2 != null) {
+                // Split the version part into number and pre-release identifier
+                var itPart1 = std.mem.split(u8, part1.?, "-");
+                var itPart2 = std.mem.split(u8, part2.?, "-");
+
+                v1 = try std.fmt.parseInt(u32, itPart1.next().?, 10);
+                v2 = try std.fmt.parseInt(u32, itPart2.next().?, 10);
+
+                // Compare pre-release identifiers if the numbers are equal
+                if (v1 == v2) {
+                    const pre1 = itPart1.next();
+                    const pre2 = itPart2.next();
+
+                    if (pre1 == null and pre2 != null) {
+                        return true;
+                    } else if (pre1 != null and pre2 == null) {
+                        return false;
+                    } else if (pre1 != null and pre2 != null) {
+                        return std.mem.eql(u8, pre1.?, pre2.?);
+                    }
+                }
+            } else {
+                return false;
             }
 
             if (v1 > v2) {
@@ -94,21 +145,78 @@ const Semver = struct {
             }
         }
     }
+
+    pub fn lt(this: @This(), version1: []const u8, version2: []const u8) !bool {
+        _ = try this.isValidVersion(version1);
+        _ = try this.isValidVersion(version2);
+
+        var itv1 = std.mem.split(u8, version1, ".");
+        var itv2 = std.mem.split(u8, version2, ".");
+
+        while (true) {
+            const part1 = itv1.next();
+            const part2 = itv2.next();
+
+            var v1: u32 = 0;
+            var v2: u32 = 0;
+
+            if (part1 != null and part2 != null) {
+                v1 = try std.fmt.parseInt(u32, part1.?, 10);
+                v2 = try std.fmt.parseInt(u32, part2.?, 10);
+            } else {
+                return false;
+            }
+
+            if (v2 > v1) {
+                return true;
+            } else if (v1 > v2) {
+                return false;
+            }
+        }
+    }
 };
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
+    _ = allocator;
 
     const semver = Semver{};
-    const valid = try semver.isValidVersion("10.11.1");
+    const valid = try semver.isValidVersion("1.02.3");
 
     std.debug.print("{s}\n", .{valid});
 
-    const clean = try semver.clean(allocator, " v=1.2.3??  ?  ");
-    defer allocator.free(clean);
+    // const clean = try semver.clean(allocator, " v=1.2.3??  ?  ");
+    // defer allocator.free(clean);
 
-    std.debug.print("{s}\n", .{clean});
+    // std.debug.print("{s}\n", .{clean});
 
-    const gt = try semver.gt("0.200.2", "0.201.1");
-    std.debug.print("{}\n", .{gt});
+    // const gt = try semver.gt("1.1.0-beta.1", "1.0.0-beta.1");
+    // std.debug.print("{}\n", .{gt});
+
+    // const lt = try semver.lt("1.2.3", "9.8.7");
+    // std.debug.print("{}\n", .{lt});
+}
+
+test "fn isValidVersion" {
+    const semver = Semver{};
+    try std.testing.expectEqual(semver.isValidVersion("0.0.0"), "0.0.0");
+    try std.testing.expectEqual(semver.isValidVersion("0.0.0-alpha"), "0.0.0-alpha");
+    try std.testing.expectEqual(semver.isValidVersion("0.0.0-alpha.1"), "0.0.0-alpha.1");
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3-alpha.1.2"), "1.2.3-alpha.1.2");
+    try std.testing.expectEqual(semver.isValidVersion("0.0.0-0.3.7"), "0.0.0-0.3.7");
+    try std.testing.expectEqual(semver.isValidVersion("999999999999999.999999999999999.999999999999999"), "999999999999999.999999999999999.999999999999999");
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3.4"), error.InvalidVersionFormat);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3*"), error.InvalidCharacter);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3?"), error.InvalidCharacter);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3/"), error.InvalidCharacter);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3beta"), error.InvalidVersionFormat);
+    try std.testing.expectEqual(semver.isValidVersion("1.2..3"), error.InvalidVersionFormat);
+    try std.testing.expectEqualStrings(try semver.isValidVersion("1.2.3-beta+exp.sha.5114f85"), "1.2.3-beta");
+    try std.testing.expectEqualStrings(try semver.isValidVersion("1.2.3+20130313144700"), "1.2.3");
+    try std.testing.expectEqual(semver.isValidVersion(" 1.2.3"), error.InvalidCharacter);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3 "), error.InvalidCharacter);
+    try std.testing.expectEqual(semver.isValidVersion("01.2.3"), error.InvalidVersionFormat);
+    try std.testing.expectEqual(semver.isValidVersion("1.02.3"), error.InvalidVersionFormat);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.03"), error.InvalidVersionFormat);
+    try std.testing.expectEqual(semver.isValidVersion("1.2.3-ß"), error.InvalidCharacter);
 }
