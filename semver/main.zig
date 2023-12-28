@@ -99,7 +99,6 @@ const Semver = struct {
     }
 
     pub fn clean(this: @This(), allocator: std.mem.Allocator, version: []const u8) ![]const u8 {
-        _ = this;
         const str = std.mem.trim(u8, version, " ");
 
         var arr = std.ArrayList(u8).init(allocator);
@@ -108,15 +107,13 @@ const Semver = struct {
         var prevCharWasDot: bool = false;
         var dotCount: i32 = 0;
         var isPreRelease: bool = false;
+        var segmentLength: i32 = 0;
+        var segmentStartsWithZero: bool = false;
 
         for (str) |value| {
             switch (value) {
                 @as(i32, '.') => {
-                    if (prevCharWasDot) {
-                        continue;
-                    }
-                    prevCharWasDot = true;
-                    dotCount += 1;
+                    try this.checkDots(&dotCount, isPreRelease, &segmentLength, &segmentStartsWithZero, &prevCharWasDot);
                     try arr.append(value);
                 },
                 @as(i32, '-') => {
@@ -148,6 +145,10 @@ const Semver = struct {
 
         const items = try allocator.alloc(u8, arr.items.len);
         std.mem.copy(u8, items, arr.items);
+
+        // Check if the cleaned version is valid
+        _ = try this.isValidVersion(items);
+
         return items;
     }
 
@@ -236,7 +237,7 @@ pub fn main() !void {
 
     // std.debug.print("{s}\n", .{valid});
 
-    const clean = try semver.clean(allocator, " v=1.2..3-beta+exp.sha.5114f85  ");
+    const clean = try semver.clean(allocator, " v=1.2.3-beta+exp.sha.5114f85  ");
     defer allocator.free(clean);
 
     std.debug.print("{s}\n", .{clean});
