@@ -62,6 +62,8 @@ const Semver = struct {
         var segmentStartsWithZero: bool = false;
 
         for (version, 0..) |value, index| {
+            _ = index;
+
             switch (value) {
                 @as(i32, '.') => {
                     try this.checkDots(&dots, isPreRelease, &segmentLength, &segmentStartsWithZero, &prevCharWasDot);
@@ -70,7 +72,8 @@ const Semver = struct {
                     try this.checkDash(&dots, &isPreRelease, &segmentLength, &segmentStartsWithZero, &prevCharWasDot);
                 },
                 @as(i32, '+') => {
-                    this.checkPlusSign(index, &buildMetadataStart);
+                    break;
+                    // this.checkPlusSign(index, &buildMetadataStart);
                 },
                 @as(i32, '0')...@as(i32, '9') => {
                     try this.checkZeroStart(value, &prevCharWasDot, &segmentLength, &segmentStartsWithZero);
@@ -104,18 +107,38 @@ const Semver = struct {
 
         var prevCharWasDot: bool = false;
         var dotCount: i32 = 0;
+        var isPreRelease: bool = false;
 
         for (str) |value| {
-            if (value == @as(u8, '.')) {
-                if (prevCharWasDot) {
-                    return error.InvalidVersionFormat;
-                }
-                prevCharWasDot = true;
-                dotCount += 1;
-                try arr.append(value);
-            } else if (value == @as(u8, '.') or (value >= @as(u8, '0') and value <= @as(u8, '9'))) {
-                try arr.append(value);
-                prevCharWasDot = false;
+            switch (value) {
+                @as(i32, '.') => {
+                    if (prevCharWasDot) {
+                        continue;
+                    }
+                    prevCharWasDot = true;
+                    dotCount += 1;
+                    try arr.append(value);
+                },
+                @as(i32, '-') => {
+                    isPreRelease = true;
+                    prevCharWasDot = false;
+                    try arr.append(value);
+                },
+                @as(i32, '+') => {
+                    break; // Stop processing when '+' is encountered
+                },
+                @as(i32, '0')...@as(i32, '9') => {
+                    prevCharWasDot = false;
+                    try arr.append(value);
+                },
+                @as(i32, 'a')...@as(i32, 'z') => {
+                    if (isPreRelease) {
+                        try arr.append(value);
+                    }
+                },
+                else => {
+                    // Ignore invalid characters
+                },
             }
         }
 
@@ -206,17 +229,17 @@ const Semver = struct {
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    _ = allocator;
 
     const semver = Semver{};
     const valid = try semver.isValidVersion("1.2.3-beta+exp.sha.5114f85");
+    _ = valid;
 
-    std.debug.print("{s}\n", .{valid});
+    // std.debug.print("{s}\n", .{valid});
 
-    // const clean = try semver.clean(allocator, " v=1.2.3??  ?  ");
-    // defer allocator.free(clean);
+    const clean = try semver.clean(allocator, " v=1.2..3-beta+exp.sha.5114f85  ");
+    defer allocator.free(clean);
 
-    // std.debug.print("{s}\n", .{clean});
+    std.debug.print("{s}\n", .{clean});
 
     // const gt = try semver.gt("1.1.0-beta.1", "1.0.0-beta.1");
     // std.debug.print("{}\n", .{gt});
@@ -241,6 +264,8 @@ test "fn isValidVersion" {
     try std.testing.expectEqual(semver.isValidVersion(" 1.2.3"), error.InvalidCharacter);
     try std.testing.expectEqual(semver.isValidVersion("1.2.3 "), error.InvalidCharacter);
     try std.testing.expectEqual(semver.isValidVersion("1.2.3-ß"), error.InvalidCharacter);
+    try std.testing.expectEqual(semver.isValidVersion("1.a.3"), error.InvalidVersionFormat);
+    try std.testing.expectEqual(semver.isValidVersion("a.b.k"), error.InvalidVersionFormat);
     try std.testing.expectEqual(semver.isValidVersion("1.2..3"), error.InvalidVersionFormat);
     try std.testing.expectEqual(semver.isValidVersion("01.2.3"), error.InvalidVersionFormat);
     try std.testing.expectEqual(semver.isValidVersion("1.02.3"), error.InvalidVersionFormat);
