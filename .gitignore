@@ -1,2 +1,7 @@
 /lottery_simulator
 /test
+
+/http_c/i.zig
+/http_c/server.zig
+
+/http_c/i.c
