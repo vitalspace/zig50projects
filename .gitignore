@@ -5,3 +5,10 @@
 /http_c/server.zig
 
 /http_c/i.c
+/http_c/sv
+/http_c/sv.cpp
+
+
+/jsc/zig-cache
+/jsc/zig-out
+
