@@ -12,3 +12,5 @@
 /jsc/zig-cache
 /jsc/zig-out
 
+/wasm_test
+

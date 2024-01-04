@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JS + ZIG + WASM Calculator</title>
+    <style>
+      * {
+        margin: 0%;
+        padding: 0;
+
+        .container {
+          height: 100vh;
+          width: 100vw;
+          display: flex;
+          justify-content: center;
+          place-items: center;
+          background: rgb(126, 95, 124);
+          font-family: sans-serif;
+
+          > .calculator {
+            display: flex;
+            flex-wrap: wrap;
+            border-radius: 0.4em;
+            flex-direction: column;
+            gap: 1em;
+            padding: 2em 1em;
+            text-align: center;
+            background: rgb(81, 189, 147);
+            box-shadow: 0 5px 5px rgb(19, 19, 19);
+
+            > h1 {
+              color: white;
+              font-size: larger;
+            }
+
+            > p {
+              color: white;
+            }
+
+            & input {
+              padding: 0.5em 0;
+              text-align: center;
+            }
+
+            > select {
+              padding: 0.5em;
+            }
+
+            > button {
+              padding: 0.5em;
+              cursor: pointer;
+              background: rgb(0, 174, 255);
+              color: white;
+              border: 1px solid transparent;
+              transition: all 0.1s;
+              border-radius: 0.2em;
+
+              &:hover {
+                background: rgb(183, 73, 197);
+                border: 1px solid rgb(88, 88, 88);
+              }
+            }
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="calculator">
+        <h1>JS + ZIG + WASM Calculator</h1>
+        <p id="result"></p>
+        <input id="numa" type="number" placeholder="num a" />
+        <input id="numb" type="number" placeholder="num a" />
+        <select id="operation">
+          <option value="add">Add</option>
+          <option value="sub">Subtract</option>
+          <option value="mult">Multiply</option>
+          <option value="div">Divide</option>
+        </select>
+        <button id="resultBtn">Result</button>
+      </div>
+    </div>
+
+    <script>
+      var selectedOption = "add";
+      document
+        .querySelector("#operation")
+        .addEventListener("change", function () {
+          selectedOption = this.options[this.selectedIndex].value;
+        });
+ 
+      WebAssembly.instantiateStreaming(fetch("./main.wasm")).then((result) => {
+        var operations = {
+          "add": result.instance.exports.add,
+          "sub": result.instance.exports.sub,
+          "mult": result.instance.exports.mult,
+          "div": result.instance.exports.div
+        };
+ 
+        document.querySelector("#resultBtn").addEventListener("click", (e) => {
+          e.preventDefault();
+          const numa = document.querySelector("#numa").value;
+          const numb = document.querySelector("#numb").value;
+ 
+          if (numa > 0 && numb > 0) {
+            document.querySelector("#result").textContent = ``;
+            const operationFunction = operations[selectedOption];
+            if (operationFunction) {
+              const resultValue = operationFunction(numa, numb);
+              document.querySelector("#result").textContent = `Result: ${resultValue}`;
+            }
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
