@@ -2,8 +2,17 @@ const std = @import("std"); // Imports the standard Zig module.
 const jsc = @import("./jsc/jsc.zig"); // Imports the JavaScriptCore module.
 
 pub fn main() !void { // Defines the main function that will run when the program starts.
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){}; // Creates a general purpose allocator.
-    const allocator = gpa.allocator(); // Gets the memory allocator.
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){}; // Creates a general purpose allocator.
+    // const allocator = gpa.allocator(); // Gets the memory allocator.
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    defer {
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) {
+            std.debug.print("memory leak \n", .{});
+        }
+    }
 
     const context = jsc.JSGlobalContextCreate(null); // Creates a new JavaScript global context.
     const jsCode = jsc.JSStringCreateWithUTF8CString("const hello = 'hello world'; hello;"); // Creates a JavaScript string with the code to execute.
