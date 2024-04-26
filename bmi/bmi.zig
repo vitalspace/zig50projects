@@ -5,7 +5,7 @@ pub fn getPrompt(allocator: std.mem.Allocator) ![]const u8 {
     var buffer: [100]u8 = undefined;
     const bytes_entered = try stdin.read(&buffer);
     const str = buffer[0..bytes_entered];
-    const str_trimmed = std.mem.trim(u8, str, "\n ");
+    const str_trimmed = std.mem.trim(u8, str, " \r\n\t");
     const str_copy = try allocator.alloc(u8, str_trimmed.len);
     std.mem.copyForwards(u8, str_copy, str_trimmed);
     return str_copy;
