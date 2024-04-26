@@ -58,7 +58,7 @@ const Ui = struct {
         var buffer: [100]u8 = undefined;
         const bytes_read = try stdin.read(&buffer);
         const entered = buffer[0..bytes_read];
-        const str = std.mem.trim(u8, entered, "\n ");
+        const str = std.mem.trim(u8, entered, " \r\n\t");
         const str_copy = try allocator.alloc(u8, str.len);
         std.mem.copyForwards(u8, str_copy, str);
         return str_copy;
