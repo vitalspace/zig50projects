@@ -3,11 +3,11 @@ const std = @import("std");
 pub fn getPrompt(allocator: std.mem.Allocator) ![]const u8 {
     var stdin = std.io.getStdIn().reader();
     var output: [100]u8 = undefined;
-    var bytes_read = try stdin.read(&output);
-    var entered = output[0..bytes_read];
-    const str = std.mem.trim(u8, entered, "\n ");
+    const bytes_read = try stdin.read(&output);
+    const entered = output[0..bytes_read];
+    const str = std.mem.trim(u8, entered, " \r\n\t");
     const str_copy = try allocator.alloc(u8, str.len);
-    std.mem.copy(u8, str_copy, str);
+    std.mem.copyForwards(u8, str_copy, str);
     return str_copy;
 }
 
