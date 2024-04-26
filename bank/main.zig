@@ -60,7 +60,7 @@ const Ui = struct {
         const entered = buffer[0..bytes_read];
         const str = std.mem.trim(u8, entered, "\n ");
         const str_copy = try allocator.alloc(u8, str.len);
-        std.mem.copy(u8, str_copy, str);
+        std.mem.copyForwards(u8, str_copy, str);
         return str_copy;
     }
 };
