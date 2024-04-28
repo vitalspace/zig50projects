@@ -62,11 +62,11 @@ const Ui = struct {
         _ = this;
         var stdin = std.io.getStdIn().reader();
         var buffer: [100]u8 = undefined;
-        var bytes_read = try stdin.read(&buffer);
+        const bytes_read = try stdin.read(&buffer);
         const entered = buffer[0..bytes_read];
-        const str = std.mem.trim(u8, entered, "\n ");
+        const str = std.mem.trim(u8, entered, " \r\n\t");
         const str_copy = try allocator.alloc(u8, str.len);
-        std.mem.copy(u8, str_copy, str);
+        std.mem.copyForwards(u8, str_copy, str);
         return str_copy;
     }
 };
@@ -102,7 +102,7 @@ pub fn main() !void {
             3 => {
                 std.debug.print("\n-- Resevet a Seat --\n", .{});
                 std.debug.print("Type seat number: ", .{});
-                var entered = try ui.getPrompt(allocator);
+                const entered = try ui.getPrompt(allocator);
                 defer allocator.free(entered);
                 const seat = try std.fmt.parseInt(u32, entered, 0);
                 try tk.reserveSeat(&seats, seat);
@@ -111,7 +111,7 @@ pub fn main() !void {
             4 => {
                 std.debug.print("\n-- Cancel reservation --\n", .{});
                 std.debug.print("Type seat number: ", .{});
-                var entered = try ui.getPrompt(allocator);
+                const entered = try ui.getPrompt(allocator);
                 defer allocator.free(entered);
                 const seat = try std.fmt.parseInt(u32, entered, 0);
                 try tk.calcelReservation(&seats, seat);
