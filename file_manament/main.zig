@@ -51,9 +51,9 @@ fn getPromt(allocator: std.mem.Allocator) ![]const u8 {
     var buffer: [100]u8 = undefined;
     const bytes_read = try stdin.read(&buffer);
     const entered = buffer[0..bytes_read];
-    const str = std.mem.trim(u8, entered, "\n ");
-    var str_copy = try allocator.alloc(u8, str.len);
-    std.mem.copy(u8, str_copy, str);
+    const str = std.mem.trim(u8, entered, " \r\n\t");
+    const str_copy = try allocator.alloc(u8, str.len);
+    std.mem.copyForwards(u8, str_copy, str);
     return str_copy;
 }
 
@@ -78,7 +78,7 @@ pub fn main() !void {
         std.debug.print("\n", .{});
         const bytes_read = try stdin.read(&input);
         const entred = input[0..bytes_read];
-        const str = std.mem.trim(u8, entred, "\n ");
+        const str = std.mem.trim(u8, entred, " \r\n\t");
 
         const option = std.fmt.parseInt(u32, str, 0) catch |err| {
             std.debug.print("\nType a valid option ERR: {}\n", .{err});
