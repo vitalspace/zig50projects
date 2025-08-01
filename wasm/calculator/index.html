@@ -84,7 +84,7 @@
     </div>
 
     <script>
-      var selectedOption = "add";
+      let selectedOption = "add";
       document
         .querySelector("#operation")
         .addEventListener("change", function () {
@@ -92,7 +92,7 @@
         });
  
       WebAssembly.instantiateStreaming(fetch("./main.wasm")).then((result) => {
-        var operations = {
+        let operations = {
           "add": result.instance.exports.add,
           "sub": result.instance.exports.sub,
           "mult": result.instance.exports.mult,
